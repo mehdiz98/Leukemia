@@ -1,0 +1,343 @@
+---
+title: "Bioinformatics Project"
+author: "Mohammad Mehdi Razavi-94102982"
+date: "July 9, 2019"
+output:
+  prettydoc::html_pretty:
+    theme: architect
+    highlight: github
+---
+  \usepackage{color}
+<div align="center">
+<img  src="../Data/Leukemia.jpg"  align = 'center'>
+</div>
+
+<h1> 
+Microaray Analysis
+</h1>
+
+#Lekemia
+Leukemia, also spelled leukaemia, is a group of blood cancers that usually begin in the bone marrow and result in high numbers of abnormal blood cells. These blood cells are not fully developed and are called blasts or leukemia cells. Symptoms may include bleeding and bruising, feeling tired, fever, and an increased risk of infections. These symptoms occur due to a lack of normal blood cells.Diagnosis is typically made by blood tests or bone marrow biopsy.
+
+The exact cause of leukemia is unknown. A combination of genetic factors and environmental (non-inherited) factors are believed to play a role. Risk factors include smoking, ionizing radiation, some chemicals (such as benzene), prior chemotherapy, and Down syndrome. People with a family history of leukemia are also at higher risk.[3] There are four main types of leukemia—acute lymphoblastic leukemia (ALL), acute myeloid leukemia (AML), chronic lymphocytic leukemia (CLL) and chronic myeloid leukemia (CML)—as well as a number of less common types. Leukemias and lymphomas both belong to a broader group of tumors that affect the blood, bone marrow, and lymphoid system, known as tumors of the hematopoietic and lymphoid tissues.
+
+Treatment may involve some combination of chemotherapy, radiation therapy, targeted therapy, and bone marrow transplant, in addition to supportive care and palliative care as needed. Certain types of leukemia may be managed with watchful waiting. The success of treatment depends on the type of leukemia and the age of the person. Outcomes have improved in the developed world. The average five-year survival rate is 57% in the United States. In children under 15, the five-year survival rate is greater than 60 to 85%, depending on the type of leukemia. In children with acute leukemia who are cancer-free after five years, the cancer is unlikely to return.
+
+load libraries
+```{r setup, comment=FALSE, cache=FALSE, warning=FALSE, message=FALSE}
+library(Biobase)
+library(GEOquery)
+library(pheatmap)
+library(limma)
+library(gplots)
+library(reshape2)
+library(plyr)
+library(dplyr)
+library(ggplot2)
+library(ggcorrplot)
+library(highcharter)
+```
+
+Download dataset with given series number
+```{r, warning= FALSE, message=FALSE}
+series <- "GSE48558"
+platform <- "GPL6244"
+gset <- getGEO(series, GSEMatrix =TRUE, AnnotGPL=TRUE, destdir = "../Data/")
+if (length(gset) > 1) idx <- grep(platform, attr(gset, "names")) else idx <- 1
+gset <- gset[[idx]]
+fvarLabels(gset) <- make.names(fvarLabels(gset))
+```
+
+Here we seperate data into two category,Normal and Luekemia.
+```{r}
+gr <- c("Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Normal",	"Leukemia",	"Leukemia",	"Leukemia",	"Normal",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Normal",	"Leukemia",	"Normal",	"Leukemia",	"Leukemia",	"Leukemia",	"Normal",	"Leukemia",	"Normal",	"Normal",	"Normal",	"Normal",	"Leukemia",	"Normal",	"Leukemia",	"Leukemia",	"Normal",	"Normal",	"Leukemia",	"Leukemia",	"Normal",	"Normal",	"Leukemia",	"Normal",	"Leukemia",	"Normal",	"Leukemia",	"Normal",	"Leukemia",	"Normal",	"Leukemia",	"Normal",	"Leukemia",	"Leukemia",	"Leukemia",	"Normal",	"Leukemia",	"Leukemia",	"Leukemia",	"Normal",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Leukemia",	"Normal",	"Normal",	"Normal",	"Normal",	"Normal",	"Normal",	"Normal",	"Leukemia",	"Leukemia",	"Normal",	"Leukemia",	"Leukemia",	"Leukemia",	"Normal",	"Normal",	"Normal",	"Normal",	"Normal",	"Normal",	"Normal",	"Normal",	"Normal",	"Normal",	"Normal",	"Normal",	"Normal",	"Normal",	"Normal",	"Normal",	"Normal",	"Normal",	"Normal",	"Normal")
+```
+
+Using exprs we can access the gene, and if it is necessary we change the data into log scale, but it is not necessary for this data
+
+```{r}
+# log2 if required
+ex <- exprs(gset)
+#ex <- log2(ex+1)
+#exprs(gset) <- ex
+```
+
+we plot the boxplot for data and as you can see there is no need for normalization.
+
+```{r, warning=FALSE, message=FALSE}
+pdf("../Results/boxplot.pdf",width = 64)
+boxplot(ex)
+dev.off()
+
+boxplot(ex)
+
+```
+
+
+If normalization is needed we can use this code.
+```{r}
+
+#### normalize if required
+#ex <- normalizeQuantiles(ex)
+#exprs(gset) <- ex
+```
+
+
+we can use correlation and heatmap to control the quality.
+
+```{r}
+###Correlation Heatmap
+##????????????????????????
+pdf("../Results/Coreheatmap.pdf",width=15, height = 15)
+pheatmap(cor(ex), labels_row = gr, labels_col = gr, color = bluered(256), border_color = NA)
+dev.off()
+
+pheatmap(cor(ex), labels_row = gr, labels_col = gr, color = bluered(256), border_color = NA)
+
+```
+
+
+Using Principal Component Analysis.
+```{r}
+###principal Component Analysis
+pc <- prcomp(ex)
+pdf("../Results/pc.pdf")
+plot(pc)
+dev.off()
+plot(pc)
+plot(pc$x[,1:2])
+```
+
+
+As you can see in the previous plot almost all the data is calculated with PC1. Now we scale the data and substract the mean of each column from all cells.(Because maybe there is a gene that its value is almost high and constant,using this scale we put this kind of data into the X-axis)
+```{r}
+#har satr ro menhaye mianginesh mikonim ta tafavot haro be ma bede va unayi ke hamishe ye meghdare sabet daran sefr beshan
+#pca gene haro keshidim
+ex.scale <- t(scale(t(ex),scale = FALSE))
+pc <- prcomp(ex.scale)
+pdf("../Results/pc_scaled.pdf")
+plot(pc)
+plot(pc$x[,1:2])
+dev.off()
+plot(pc)
+plot(pc$x[,1:2])
+```
+
+In the previous section we used pca for genes,Now we plot PCA for the samples.samples are reachable in the roration dataset.
+```{r}
+#hala pca sample haro bekeshim ke tooye pc$rotation hast
+pcr <- data.frame(pc$rotation[,1:3], Group = gr)
+pdf("../Results/pca_samples.pdf")
+ggplot(pcr, aes(x= PC1, y= PC2, color= Group)) + geom_point(size=3) + theme_bw()
+dev.off()
+
+ggplot(pcr, aes(x= PC1, y= PC2, color= Group)) + geom_point(size=3) + theme_bw()
+
+```
+As you can see the Normal and Leukemia data are seperated but there is a little interference. so we use more specific categories to plot the samples.
+```{r}
+gr2 <- c("AML.Patient","AML.Patient","AML.Patient","AML.Patient","AML.Patient","AML.Patient","AML.Patient","AML.Patient","AML.Patient","AML.Patient","AML.Patient","AML.Patient","AML.Patient","B.ALL.Cell.Line","B.ALL.Cell.Line","B.ALL.Cell.Line","B.ALL.Cell.Line","T.ALL.Cell.Line","T.ALL.Cell.Line","B.ALL.Cell.Line","T.ALL.Cell.Line","B.ALL.Cell.Line","B.ALL.Cell.Line","T.ALL.Cell.Line","B.ALL.Cell.Line","B.ALL.Cell.Line","T.ALL.Cell.Line","T.ALL.Cell.Line","B.ALL.Cell.Line","B.ALL.Cell.Line","B.ALL.Cell.Line","B.ALL.Cell.Line","B.ALL.Cell.Line","T.ALL.Cell.Line","T.ALL.Cell.Line","B.ALL.Cell.Line","T.ALL.Cell.Line","B.ALL.Patient","T.ALL.Cell.Line","AML.Cell.Line","Granulocytes","B.ALL.Patient","T.ALL.Cell.Line","AML.Cell.Line","Granulocytes","B.ALL.Patient","T.ALL.Cell.Line","AML.Cell.Line","B.ALL.Patient","AML.Cell.Line",
+               "AML.Cell.Line","B.ALL.Patient","AML.Cell.Line","AML.Cell.Line","B.ALL.Patient","AML.Cell.Line","AML.Cell.Line","B.ALL.Patient","B.ALL.Cell.Line","AML.Cell.Line","B.ALL.Patient","B.ALL.Cell.Line","AML.Cell.Line","B.ALL.Patient","B.ALL.Cell.Line","AML.Cell.Line","B.ALL.Patient","B.ALL.Cell.Line","B.Cells","B.ALL.Cell.Line","T.Cells","AML.Cell.Line","B.ALL.Patient","B.ALL.Cell.Line","Granulocytes","B.ALL.Cell.Line","Granulocytes","Monocytes","Monocytes","B.Cells","B.ALL.Cell.Line","T.Cells","AML.Cell.Line","B.ALL.Cell.Line","T.Cells","T.Cells","AML.Cell.Line","B.ALL.Cell.Line","T.Cells","T.Cells","AML.Cell.Line","B.Cells","B.ALL.Cell.Line","T.Cells","AML.Cell.Line","B.Cells","B.ALL.Cell.Line","T.Cells","AML.Cell.Line","CD34",
+               "T.ALL.Cell.Line","T.ALL.Patient","AML.Cell.Line","CD34","T.ALL.Cell.Line","T.ALL.Patient","AML.Cell.Line","CD34","T.ALL.Cell.Line","T.ALL.Patient","AML.Cell.Line","T.ALL.Patient","B.ALL.Patient","B.ALL.Patient","B.ALL.Patient","B.ALL.Patient","B.ALL.Patient","B.ALL.Patient","B.ALL.Patient","B.ALL.Patient","B.ALL.Patient","T.ALL.Patient","B.ALL.Patient","B.ALL.Patient","B.ALL.Patient","B.ALL.Patient","B.ALL.Patient","B.ALL.Patient","B.ALL.Patient","T.ALL.Patient","T.ALL.Patient","T.ALL.Patient","T.ALL.Patient","T.ALL.Patient","T.ALL.Patient","T.ALL.Patient","T.ALL.Patient","Granulocytes","Granulocytes","Granulocytes","Granulocytes","Granulocytes","Granulocytes","Granulocytes","AML.Patient","AML.Patient","T.Cells","AML.Patient","AML.Patient","AML.Patient",
+               "B.Cells","B.Cells","B.Cells","B.Cells","B.Cells","B.Cells","B.Cells","T.Cells","Monocytes","Monocytes","Monocytes","Monocytes","Granulocytes","T.Cells","T.Cells","T.Cells","T.Cells","T.Cells","T.Cells","T.Cells")
+pcr <- data.frame(pc$rotation[,1:3], Group = gr, Group2 = gr2)
+pdf("../Results/pca_samples2.pdf")
+ggplot(pcr, aes(x= PC1, y= PC2, color= Group2)) + geom_point(size=3) + theme_bw()
+dev.off()
+
+ggplot(pcr, aes(x= PC1, y= PC2, color= Group2)) + geom_point(size=3) + theme_bw()
+
+```
+
+
+If you compare the last two plots you can see the T Cells and B Cells are the samples that are close to the leukemia samples. so if we put them aside we can seperate Normall and leukemia samples better.
+
+```{r}
+#Now we remove the data that related to T Cells and B Cells
+pcr %>% filter(Group2 != "T.Cells") %>% filter(Group2 != "B.Cells") -> reduced.pcr
+ggplot(reduced.pcr, aes(x= PC1, y= PC2, color= Group)) + geom_point(size=3) + theme_bw()
+```
+
+As you can see the seperation is done much more better.
+And Also in the different researches we can see that the T cells are very important part of Normall samples.One of the newest treatments is that we can use T-cells in order to fight with Leukemia cells.
+
+Differential Expression Analysis
+```{r}
+gr <- factor(gr)
+gset$description <- gr
+design <- model.matrix(~ description + 0, gset)
+colnames(design) <- levels(gr)
+fit <- lmFit(gset, design)
+cont.matrix <- makeContrasts(Leukemia-Normal, levels=design)#define what categories we want to compare
+fit2 <- contrasts.fit(fit, cont.matrix)
+fit2 <- eBayes(fit2, 0.01) #bayesian model for calculating p-value
+tT <- topTable(fit2, adjust="fdr", sort.by="B", number=500)
+tT <- subset(tT, select=c("Gene.symbol","ID","adj.P.Val","P.Value","t","B","logFC","Gene.title"))
+
+```
+
+The best way to decide on the number of DE genes you are going to select is via a Volcano plot.
+
+A Volcano plot is generated by using the volcanoplot() method on the output of the moderated t-test.
+
+
+```{r}
+name = "Volcano.jpg"
+jpeg(name)
+volcanoplot(fit2,coef=,highlight=10)
+dev.off()
+volcanoplot(fit2,coef=,highlight=10)
+```
+We use a linear model and bayesian model to seperate wanted values from others.
+
+Ontology
+we use this code to extract the genes that have higher expression.
+```{r}
+aml.up <- subset(tT, logFC > 1 & adj.P.Val < 0.05)
+aml.up.genes <- unique(as.character(strsplit2(aml.up$Gene.symbol,"///")))
+write.table(aml.up.genes, file="../Results/luekemia_Normal_up.txt", row.names=F, sep="\t", quote = F)
+```
+
+
+```{r}
+aml.down <- subset(tT, logFC < -1 & adj.P.Val < 0.05)
+aml.up.genes <- unique(as.character(strsplit2(aml.down$Gene.symbol,"///")))
+write.table(aml.up.genes, file="../Results/luekemia_Normal_down.txt", row.names=F, sep="\t", quote = F)
+```
+
+Now we use Enrichr website to analyze the the ontology, pathway and Transcriptions.
+The results are shown below.
+
+
+#Transcription
+
+##ChEA 2016
+<div align="center">
+<img  src="../Results/Enrichr/ChEA_2016_bar_graph.png"  align = 'center'>
+</div>
+
+##ARCHS4 TFs Coexp
+<div align="center">
+<img  src="../Results/Enrichr/ARCHS4_TFs_Coexp_bar_graph.png"  align = 'center'>
+</div>
+
+##Enrich Submissions TF-Gene Coocurrence
+<div align="center">
+<img  src="../Results/Enrichr/Enrichr_Submissions_TF-Gene_Coocurrence_bar_graph.png"  align = 'center'>
+</div>
+
+
+#Pathway
+
+##WikiPathway 2019 Human
+<div align="center">
+<img  src="../Results/Enrichr/WikiPathways_2019_Human_bar_graph.png"  align = 'center'>
+</div>
+
+As you can see the highest value belong to Retinoblastoma Gene.you can see this pathway below.
+
+<div align="center">
+<img  src="../Results/Enrichr/WP2446_102997.png"  align = 'center'>
+</div>
+###About Retinoblastoma
+The retinoblastoma gene, Rb, was originally identified as the tumor suppressor gene mutated in a rare childhood cancer called retinoblastoma. Subsequent studies showed that Rb functions in a pathway that is often functionally inactivated in a large majority of human cancers. Interestingly, recent studies showed that in certain types of cancers, Rb function is actually required for cancer development. The intimate link between the Rb pathway and cancer development suggests that the status of Rb activity can potentially be used to develop targeted therapy. However, a prerequisite will be to understand the role of Rb and its interaction with other signaling pathways in cancer development.
+
+
+##Reactom 2016
+<div align="center">
+<img  src="../Results/Enrichr/Reactome_2016_bar_graph.png"  align = 'center'>
+</div>
+
+also the R-HSA-1640170 pathway from REACTOME is shown below.
+
+<div align="center">
+<img  src="../Results/Enrichr/R-HSA-1640170.png"  align = 'center'>
+</div>
+
+###About R-HSA-1640170
+The replication of the genome and the subsequent segregation of chromosomes into daughter cells are controlled by a series of events collectively known as the cell cycle. DNA replication is carried out during a discrete temporal period known as the S (synthesis)-phase, and chromosome segregation occurs during a massive reorganization to cellular architecture at mitosis. Two gap-phases separate these major cell cycle events: G1 between mitosis and S-phase, and G2 between S-phase and mitosis. In the development of the human body, cells can exit the cell cycle for a period and enter a quiescent state known as G0, or terminally differentiate into cells that will not divide again, but undergo morphological development to carry out the wide variety of specialized functions of individual tissues.A family of protein serine/threonine kinases known as the cyclin-dependent kinases (CDKs) controls progression through the cell cycle. As the name suggests, the activity of the catalytic subunit is dependent on binding to a cyclin partner. The human genome encodes several cyclins and several CDKs, with their names largely derived from the order in which they were identified. The oscillation of cyclin abundance is one important mechanism by which these enzymes phosphorylate key substrates to promote events at the relevant time and place. Additional post-translational modifications and interactions with regulatory proteins ensure that CDK activity is precisely regulated, frequently confined to a narrow window of activity.In addition, genome integrity in the cell cycle is maintained by the action of a number of signal transduction pathways, known as cell cycle checkpoints, which monitor the accuracy and completeness of DNA replication during S phase and the orderly chromosomal condensation, pairing and partition into daughter cells during mitosis.Replication of telomeric DNA at the ends of human chromosomes and packaging of their centromeres into chromatin are two aspects of chromosome maintenance that are integral parts of the cell cycle.Meiosis is the specialized form of cell division that generates haploid gametes from diploid germ cells, associated with recombination (exchange of genetic material between chromosomal homologs).
+
+#ontologies
+
+##GO Cellular Component 2017b
+<div align="center">
+<img  src="../Results/Enrichr/GO_Cellular_Component_2017b_bar_graph.png"  align = 'center'>
+</div>
+
+##GO Biological Process 2017b
+<div align="center">
+<img  src="../Results/Enrichr/GO_Biological_Process_2017b_bar_graph.png"  align = 'center'>
+</div>
+
+
+
+
+
+
+Now we USe GSEA application that is usually more accurate than Enrichr and give use more data about the genes we want.
+```{r}
+data <- read.delim("../Data/GSE48558_series_matrix.txt", comment.char = "!")
+# it seems taht the data is log scaled
+colnames(data) <- c("Name","Leukemia1",	"Leukemia2",	"Leukemia3",	"Leukemia4",	"Leukemia5",	"Leukemia6",	"Leukemia7",	"Leukemia8",	"Leukemia9",	"Leukemia10",	"Leukemia11",	"Leukemia12",	"Leukemia13",	"Leukemia14",	"Leukemia15",	"Leukemia16",	"Leukemia17",	"Leukemia18",	"Leukemia19",	"Leukemia20",	"Leukemia21",	"Leukemia22",	"Leukemia23",	"Leukemia24",	"Leukemia25",	"Leukemia26",	"Leukemia27",	"Leukemia28",	"Leukemia29",	"Leukemia30",	"Leukemia31",	"Leukemia32",	"Leukemia33",	"Leukemia34",	"Leukemia35",	"Leukemia36",	"Leukemia37",	"Leukemia38",	"Leukemia39",	"Leukemia40",	"Normal1",	"Leukemia41",	"Leukemia42",	"Leukemia43",	"Normal2",	"Leukemia44",	"Leukemia45",	"Leukemia46",	"Leukemia47",	"Leukemia48",	"Leukemia49",	"Leukemia50",	"Leukemia51",	"Leukemia52",	"Leukemia53",	"Leukemia54",	"Leukemia55",	"Leukemia56",	"Leukemia57",	"Leukemia58",	"Leukemia59",	"Leukemia60",	"Leukemia61",	"Leukemia62",	"Leukemia63",	"Leukemia64",	"Leukemia65",	"Leukemia66",	"Normal3",	"Leukemia67",	"Normal4",	"Leukemia68",	"Leukemia69",	"Leukemia70",	"Normal5",	"Leukemia71",	"Normal6",	"Normal7",	"Normal8",	"Normal9",	"Leukemia72",	"Normal10",	"Leukemia73",	"Leukemia74",	"Normal11",	"Normal12",	"Leukemia75",	"Leukemia76",	"Normal13",	"Normal14",	"Leukemia77",	"Normal15",	"Leukemia78",	"Normal16",	"Leukemia79",	"Normal17",	"Leukemia80",	"Normal18",	"Leukemia81",	"Normal19",	"Leukemia82",	"Leukemia83",	"Leukemia84",	"Normal20",	"Leukemia85",	"Leukemia86",	"Leukemia87",	"Normal21",	"Leukemia88",	"Leukemia89",	"Leukemia90",	"Leukemia91",	"Leukemia92",	"Leukemia93",	"Leukemia94",	"Leukemia95",	"Leukemia96",	"Leukemia97",	"Leukemia98",	"Leukemia99",	"Leukemia100",	"Leukemia101",	"Leukemia102",	"Leukemia103",	"Leukemia104",	"Leukemia105",	"Leukemia106",	"Leukemia107",	"Leukemia108",	"Leukemia109",	"Leukemia110",	"Leukemia111",	"Leukemia112",	"Leukemia113",	"Leukemia114",	"Leukemia115",	"Leukemia116",	"Normal22",	"Normal23",	"Normal24",	"Normal25",	"Normal26",	"Normal27",	"Normal28",	"Leukemia117",	"Leukemia118",	"Normal29",	"Leukemia119",	"Leukemia120",	"Leukemia121",	"Normal30",	"Normal31",	"Normal32",	"Normal33",	"Normal34",	"Normal35",	"Normal36",	"Normal37",	"Normal38",	"Normal39",	"Normal40",	"Normal41",	"Normal42",	"Normal43",	"Normal44",	"Normal45",	"Normal46",	"Normal47",	"Normal48",	"Normal49")
+
+write.table(data, "../Results/AML_GSEA.txt", row.names = F, col.names = T, sep = "\t", quote = F)
+```
+
+
+The rsults about GSEA analysis are in the GSEA_Results folder
+<div align="center">
+<img  src="../Results/GSEA_first.png"  align = 'center'>
+</div>
+
+
+<div align="center">
+<img  src="../Results/Enrichr_plots.png"  align = 'center'>
+</div>
+
+
+#Treatment
+##Targeted therapy. 
+AML tends to be aggressive and is harder to treat than ALL. However, AML cells may have gene changes that can be targeted with new drugs. Targeted therapies that have recently been approved for AML include:
+1-Enasidenib (Idhifa), which inhibits the activity of mutant forms of a protein called IDH2
+
+2-Venetoclax (Venclexta), which inhibits the activity of a protein called BCL-2
+
+3-Gemtuzumab ozogamicin (Mylotarg), which targets a protein on leukemia cells called CD33 and delivers a toxin to the cells
+
+4-Midostaurin (Rydapt), which inhibits the activity of a protein called FLT3
+
+5-Gilteritinib (Xospata), which inhibits the activity of mutant forms of FLT3
+
+Researchers are also testing other ways to treat AML such as:
+1-Looking at newer targeted therapies. One promising drug, called pevonedistat, targets a protein called NAE that is involved in cell division and is being studied in clinical trials.
+
+2-Studying ways to target AML cells indirectly. An ongoing clinical trial is adding the drug uproleselan to chemotherapy. Uproleselan targets a protein called E-selectin on non-cancerous cells that helps protect cancer cells from being killed by chemotherapy.
+
+3-Exploring other drugs that may have use in AML. These include HDAC inhibitors and related treatments that alter how genes are switched on and off. Many of these drugs are also being studied for the treatment of myelodysplastic syndromes (MDS), which can eventually progress to AML.
+
+##Immunotherapy
+Immunotherapy works to boost the body’s immune system to help fight off or destroy cancer cells.
+
+Monoclonal antibodies: These are man-made versions of immune system proteins (antibodies) that are designed to attach to specific targets, such as substances on the surface of cancer cells. Some work by boosting the body’s immune response against the cancer cells. Others have radioactive chemicals or cell poisons attached to them. When they are injected into the patient, these antibodies act like a homing device, bringing the radioactivity or poison directly to the cancer cells, which kills them.
+
+Gemtuzumab ozogamicin (Mylotarg) is a monoclonal antibody with a cell poison attached to it. It is now approved to treat AML in some patients. Several other monoclonal antibodies are now being studied as well.
+
+Immune checkpoint inhibitors: An important part of the immune system is its ability to keep itself from attacking other normal cells in the body. To do this, it uses “checkpoints” – molecules on immune cells that need to be turned on (or off) to start an immune response. Cancer cells sometimes use these checkpoints to avoid being attacked by the immune system. But newer drugs that target these checkpoints hold a lot of promise as treatments. Some of these drugs are already being used to treat other types of cancer, and they are now being studied for use in AML as well.
+
+CAR T-cell therapy: This is a promising new way to get the patient's immune system to fight leukemia. For this technique, immune cells called T cells are removed from the patient’s blood and altered in the lab so they have specific substances (called chimeric antigen receptors, or CARs) that will help them attach to leukemia cells. The T cells are then grown in the lab and infused back into the patient’s blood, where they can now seek out the leukemia cells and attack them.
+
+This technique has shown very promising results in early clinical trials against some other types of advanced, hard-to-treat leukemias. Although it’s not yet clear if it will work against AML, clinical trials are now in progress to find out. One concern with this treatment is that some people have had very serious side effects, including very high fevers and dangerously low blood pressure in the days after it’s given. Doctors are learning how to manage these side effects.
+
+#Refrences
+wikipedia.com
+
+reactom.org
+
+www.ncbi.nlm.nih.gov
+
+bioconductor.org
+
+www.cancer.org
+
+www.mskcc.org
+
